@@ -454,14 +454,11 @@ First, let's talk about automation. AI-powered automation is transforming manufa
         successDiv.style.display = "none";
 
         try {
-          const response = await fetch(
-            "https:localhost:3000/api/generate-content",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ prompt, transcript }),
-            }
-          );
+          const response = await fetch("/api/generate-content", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt, transcript }),
+          });
 
           const data = await response.json();
 
@@ -529,20 +526,17 @@ First, let's talk about automation. AI-powered automation is transforming manufa
         successDiv.style.display = "none";
 
         try {
-          const response = await fetch(
-            "https:localhost:3000/api/generate-first-image",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                prompt,
-                heading: firstSlide.heading,
-                explanation: firstSlide.explanation,
-                slideNumber: firstSlide.slideNumber,
-                totalSlides: slides.length,
-              }),
-            }
-          );
+          const response = await fetch("/api/generate-first-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              heading: firstSlide.heading,
+              explanation: firstSlide.explanation,
+              slideNumber: firstSlide.slideNumber,
+              totalSlides: slides.length,
+            }),
+          });
 
           const data = await response.json();
 
@@ -616,18 +610,15 @@ First, let's talk about automation. AI-powered automation is transforming manufa
         successDiv.style.display = "none";
 
         try {
-          const response = await fetch(
-            "https:localhost:3000/api/generate-remaining-images",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                prompt,
-                slides: remainingSlides,
-                firstImageUrl,
-              }),
-            }
-          );
+          const response = await fetch("/api/generate-remaining-images", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              slides: remainingSlides,
+              firstImageUrl,
+            }),
+          });
 
           const data = await response.json();
 
