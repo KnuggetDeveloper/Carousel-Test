@@ -66,16 +66,20 @@ app.post("/api/generate-content", async (req: Request, res: Response) => {
     }
 
     if (!prompt || prompt.trim() === "") {
-      return res.status(400).json({ 
-        error: "Prompt is required", 
-        message: "Please provide a content generation prompt in the first text box" 
+      return res.status(400).json({
+        error: "Prompt is required",
+        message:
+          "Please provide a content generation prompt in the first text box",
       });
     }
 
     // Replace {transcript} placeholder if present in prompt
     const finalPrompt = prompt.replace(/\{transcript\}/g, transcript);
 
-    console.log("📝 Generating content with prompt:", finalPrompt.substring(0, 200));
+    console.log(
+      "📝 Generating content with prompt:",
+      finalPrompt.substring(0, 200)
+    );
 
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
@@ -124,29 +128,38 @@ app.post("/api/generate-first-image", async (req: Request, res: Response) => {
       req.body as GenerateFirstImageRequest;
 
     if (!heading || !explanation) {
-      return res.status(400).json({ error: "Heading and explanation are required" });
+      return res
+        .status(400)
+        .json({ error: "Heading and explanation are required" });
     }
 
     // Use prompt from client - replace placeholders with actual values
     let finalPrompt = prompt || "";
-    
+
     if (!finalPrompt || finalPrompt.trim() === "") {
-      throw new Error("Prompt is required. Please provide a prompt in the first image prompt box.");
+      throw new Error(
+        "Prompt is required. Please provide a prompt in the first image prompt box."
+      );
     }
-    
+
     // Replace {heading} and {explanation} placeholders with actual values
     finalPrompt = finalPrompt
       .replace(/\{heading\}/g, heading)
       .replace(/\{explanation\}/g, explanation);
-    
+
     // CRITICAL: Add image generation instruction if not present
-    if (!finalPrompt.toLowerCase().includes("generate") && 
-        !finalPrompt.toLowerCase().includes("create") && 
-        !finalPrompt.toLowerCase().includes("image")) {
+    if (
+      !finalPrompt.toLowerCase().includes("generate") &&
+      !finalPrompt.toLowerCase().includes("create") &&
+      !finalPrompt.toLowerCase().includes("image")
+    ) {
       finalPrompt = `Generate an image: ${finalPrompt}`;
     }
 
-    console.log("🎨 Generating first image with prompt:", finalPrompt.substring(0, 300));
+    console.log(
+      "🎨 Generating first image with prompt:",
+      finalPrompt.substring(0, 300)
+    );
 
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-image-preview",
@@ -219,145 +232,165 @@ app.post("/api/generate-first-image", async (req: Request, res: Response) => {
 /**
  * Generate REMAINING slide images (with reference to first image)
  */
-app.post("/api/generate-remaining-images", async (req: Request, res: Response) => {
-  try {
-    const { prompt, slides, firstImageUrl } =
-      req.body as GenerateRemainingImagesRequest;
+app.post(
+  "/api/generate-remaining-images",
+  async (req: Request, res: Response) => {
+    try {
+      const { prompt, slides, firstImageUrl } =
+        req.body as GenerateRemainingImagesRequest;
 
-    if (!slides || slides.length === 0) {
-      return res.status(400).json({ error: "Slides are required" });
-    }
-
-    if (!firstImageUrl) {
-      return res.status(400).json({ error: "First image URL is required" });
-    }
-
-    // Read the reference image
-    const styleImagePath = path.join(__dirname, "..", firstImageUrl.replace(/^\//, ""));
-    
-    if (!fs.existsSync(styleImagePath)) {
-      return res.status(400).json({ error: "Reference image not found" });
-    }
-
-    const imageData = fs.readFileSync(styleImagePath);
-    const base64Image = imageData.toString("base64");
-
-    console.log(`🎨 Generating ${slides.length} images with reference`);
-
-    const results = [];
-
-    for (const slide of slides) {
-      try {
-        // Use prompt from client - replace placeholders with actual values
-        let finalPrompt = prompt || "";
-        
-        if (!finalPrompt || finalPrompt.trim() === "") {
-          throw new Error("Prompt is required. Please provide a prompt in the remaining images prompt box.");
-        }
-        
-        // Replace {heading} and {explanation} placeholders with actual values
-        finalPrompt = finalPrompt
-          .replace(/\{heading\}/g, slide.heading)
-          .replace(/\{explanation\}/g, slide.explanation);
-        
-        // CRITICAL: Add image generation instruction if not present
-        if (!finalPrompt.toLowerCase().includes("generate") && 
-            !finalPrompt.toLowerCase().includes("create") && 
-            !finalPrompt.toLowerCase().includes("image")) {
-          finalPrompt = `Generate an image: ${finalPrompt}`;
-        }
-
-        console.log(`🎨 Generating slide ${slide.slideNumber}/${slides.length}`);
-
-        const contents = [
-          { text: finalPrompt },
-          {
-            inlineData: {
-              mimeType: "image/png",
-              data: base64Image,
-            },
-          },
-        ];
-
-        const response = await ai.models.generateContent({
-          model: "gemini-3-pro-image-preview",
-          contents,
-          config: {
-            responseModalities: ["IMAGE"], // Only request IMAGE
-            imageConfig: {
-              aspectRatio: "1:1",
-              imageSize: "2K",
-            },
-          },
-        });
-
-        // Extract image
-        if (!response.candidates || response.candidates.length === 0) {
-          throw new Error("No candidates in response");
-        }
-
-        const candidate = response.candidates[0];
-        let slideImageData: string | null = null;
-
-        for (const part of candidate.content.parts || []) {
-          if ((part as any).thought) continue;
-          if (
-            part.inlineData?.mimeType?.includes("image") &&
-            part.inlineData?.data
-          ) {
-            slideImageData = part.inlineData.data;
-            break;
-          }
-        }
-
-        if (!slideImageData) {
-          throw new Error("No image data found");
-        }
-
-        // Save image
-        const timestamp = Date.now();
-        const filename = `test-slide-${slide.slideNumber}-${timestamp}.png`;
-        const filepath = path.join(uploadsDir, filename);
-        const imageUrl = `/uploads/carousel/${filename}`;
-
-        const buffer = Buffer.from(slideImageData, "base64");
-        fs.writeFileSync(filepath, buffer);
-
-        results.push({
-          slideNumber: slide.slideNumber,
-          imageUrl,
-          status: "completed",
-          tokens: {
-            input: response.usageMetadata?.promptTokenCount || 0,
-            output: response.usageMetadata?.candidatesTokenCount || 0,
-            total: response.usageMetadata?.totalTokenCount || 0,
-          },
-        });
-
-        console.log(`✅ Generated slide ${slide.slideNumber}`);
-      } catch (error) {
-        console.error(`❌ Failed to generate slide ${slide.slideNumber}:`, error);
-        results.push({
-          slideNumber: slide.slideNumber,
-          imageUrl: null,
-          status: "failed",
-          error: error instanceof Error ? error.message : "Unknown error",
-        });
+      if (!slides || slides.length === 0) {
+        return res.status(400).json({ error: "Slides are required" });
       }
-    }
 
-    res.json({
-      success: true,
-      results,
-    });
-  } catch (error) {
-    console.error("❌ Error generating remaining images:", error);
-    res.status(500).json({
-      error: "Failed to generate remaining images",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+      if (!firstImageUrl) {
+        return res.status(400).json({ error: "First image URL is required" });
+      }
+
+      // Read the reference image
+      const styleImagePath = path.join(
+        __dirname,
+        "..",
+        firstImageUrl.replace(/^\//, "")
+      );
+
+      if (!fs.existsSync(styleImagePath)) {
+        return res.status(400).json({ error: "Reference image not found" });
+      }
+
+      const imageData = fs.readFileSync(styleImagePath);
+      const base64Image = imageData.toString("base64");
+
+      console.log(`🎨 Generating ${slides.length} images with reference`);
+
+      const results = [];
+
+      for (const slide of slides) {
+        try {
+          // Use prompt from client - replace placeholders with actual values
+          let finalPrompt = prompt || "";
+
+          if (!finalPrompt || finalPrompt.trim() === "") {
+            throw new Error(
+              "Prompt is required. Please provide a prompt in the remaining images prompt box."
+            );
+          }
+
+          // Replace {heading} and {explanation} placeholders with actual values
+          finalPrompt = finalPrompt
+            .replace(/\{heading\}/g, slide.heading)
+            .replace(/\{explanation\}/g, slide.explanation);
+
+          // CRITICAL: Add image generation instruction if not present
+          if (
+            !finalPrompt.toLowerCase().includes("generate") &&
+            !finalPrompt.toLowerCase().includes("create") &&
+            !finalPrompt.toLowerCase().includes("image")
+          ) {
+            finalPrompt = `Generate an image: ${finalPrompt}`;
+          }
+
+          console.log(
+            `🎨 Generating slide ${slide.slideNumber}/${slides.length}`
+          );
+
+          const contents = [
+            { text: finalPrompt },
+            {
+              inlineData: {
+                mimeType: "image/png",
+                data: base64Image,
+              },
+            },
+          ];
+
+          const response = await ai.models.generateContent({
+            model: "gemini-3-pro-image-preview",
+            contents,
+            config: {
+              responseModalities: ["IMAGE"], // Only request IMAGE
+              imageConfig: {
+                aspectRatio: "1:1",
+                imageSize: "2K",
+              },
+            },
+          });
+
+          // Extract image
+          if (!response.candidates || response.candidates.length === 0) {
+            throw new Error("No candidates in response");
+          }
+
+          const candidate = response.candidates[0];
+          if (!candidate?.content?.parts) {
+            throw new Error("No content parts in response");
+          }
+
+          let slideImageData: string | null = null;
+
+          for (const part of candidate.content.parts) {
+            if ((part as any).thought) continue;
+            if (
+              part.inlineData?.mimeType?.includes("image") &&
+              part.inlineData?.data
+            ) {
+              slideImageData = part.inlineData.data;
+              break;
+            }
+          }
+
+          if (!slideImageData) {
+            throw new Error("No image data found");
+          }
+
+          // Save image
+          const timestamp = Date.now();
+          const filename = `test-slide-${slide.slideNumber}-${timestamp}.png`;
+          const filepath = path.join(uploadsDir, filename);
+          const imageUrl = `/uploads/carousel/${filename}`;
+
+          const buffer = Buffer.from(slideImageData, "base64");
+          fs.writeFileSync(filepath, buffer);
+
+          results.push({
+            slideNumber: slide.slideNumber,
+            imageUrl,
+            status: "completed",
+            tokens: {
+              input: response.usageMetadata?.promptTokenCount || 0,
+              output: response.usageMetadata?.candidatesTokenCount || 0,
+              total: response.usageMetadata?.totalTokenCount || 0,
+            },
+          });
+
+          console.log(`✅ Generated slide ${slide.slideNumber}`);
+        } catch (error) {
+          console.error(
+            `❌ Failed to generate slide ${slide.slideNumber}:`,
+            error
+          );
+          results.push({
+            slideNumber: slide.slideNumber,
+            imageUrl: null,
+            status: "failed",
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        results,
+      });
+    } catch (error) {
+      console.error("❌ Error generating remaining images:", error);
+      res.status(500).json({
+        error: "Failed to generate remaining images",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
   }
-});
+);
 
 // Helper function to parse slide content
 function parseSlideContent(text: string): SlideContent[] {
