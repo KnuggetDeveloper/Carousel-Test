@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carousel Prompt Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #151515;
+            color: #fff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ff6b35;
+        }
+
+        .section {
+            background: #313130;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ff6b35;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-number {
+            background: #ff6b35;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            background: #1f1f1f;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #ff6b35;
+        }
+
+        .transcript-input {
+            min-height: 200px;
+        }
+
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #ff8c42;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ff6b35;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #444;
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .slides-container {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 20px 0;
+            scrollbar-width: thin;
+            scrollbar-color: #555 #1f1f1f;
+        }
+
+        .slides-container::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .slides-container::-webkit-scrollbar-track {
+            background: #1f1f1f;
+            border-radius: 4px;
+        }
+
+        .slides-container::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .slides-container::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        .slide-card {
+            flex: 0 0 300px;
+            background: #1f1f1f;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        .slide-image {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .slide-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slide-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .slide-content {
+            padding: 15px;
+        }
+
+        .slide-heading {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .slide-explanation {
+            font-size: 13px;
+            color: #aaa;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .placeholder-icon {
+            font-size: 48px;
+            color: #555;
+        }
+
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            background: #44ff44;
+            color: #000;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #2a2a2a;
+            border-left: 4px solid #ff6b35;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .results-summary {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .token-info {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        .no-slides {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .field-label {
+            display: block;
+            color: #ff6b35;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .field-label-top {
+            margin-top: 0;
+        }
+
+        .field-label-spacing {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Carousel Prompt Tester</h1>
+
+        <!-- Step 1: Generate Content -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-number">1</span>
+                Generate Slide Content (Text)
+            </div>
+            <div class="info-box">
+                This prompt generates the slide structure (headings + explanations) from your transcript.
+            </div>
+            
+            <label class="field-label field-label-top">
+                📝 Transcript (Required)
+            </label>
+            <textarea 
+                id="transcript" 
+                class="transcript-input"
+                placeholder="Paste your video transcript here...
+
+Example: Welcome to today's discussion about artificial intelligence and its impact on modern business. In this session, we'll explore how AI is revolutionizing various industries..."
+            ></textarea>
+            
+            <label class="field-label field-label-spacing">
+                🎯 Content Generation Prompt (REQUIRED)
+            </label>
+            <textarea 
+                id="contentPrompt" 
+                placeholder="Enter your prompt for content generation (REQUIRED)
+
+Example:
+Generate detailed notes from this transcript.
+Create 8-12 slides with format:
+
+Slide [N]
+Heading: [Title]
+Explanation: [Details]
+
+Transcript: {transcript}
+
+Note: Use {transcript} as placeholder - it will be replaced automatically."
+            ></textarea>
+            
+            <div class="button-group">
+                <button onclick="generateContent()" id="generateContentBtn">
+                    Generate Slide Content
+                </button>
+                <button onclick="loadSampleTranscript()" style="background: #2a2a2a;">
+                    Load Sample Transcript
+                </button>
+            </div>
+            <div id="contentLoading" class="loading" style="display: none; margin-top: 10px;">
+                <div class="spinner"></div>
+                <span>Generating slide content...</span>
+            </div>
+            <div id="contentError" class="error-message" style="display: none;"></div>
+            <div id="contentSuccess" class="success-message" style="display: none;"></div>
+        </div>
+
+        <!-- Step 2: Generate First Image -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-number">2</span>
+                Generate First Slide Image
+            </div>
+            <div class="info-box">
+                This prompt generates the FIRST slide image (establishes the style/design).
+            </div>
+            <label class="field-label field-label-top">
+                🎨 First Image Generation Prompt (REQUIRED)
+            </label>
+            <textarea 
+                id="firstImagePrompt" 
+                placeholder="Enter your prompt for first image generation (REQUIRED)
+
+Example:
+Generate a professional infographic about {heading}
+
+Content: {explanation}
+
+Style: Modern, clean, with icons. Orange accent (#ff6b35).
+
+Note: Use {heading} and {explanation} as placeholders - they will be replaced automatically."
+            ></textarea>
+            
+            <button onclick="generateFirstImage()" id="generateFirstBtn" disabled>
+                Generate First Slide Image
+            </button>
+            <div id="firstLoading" class="loading" style="display: none; margin-top: 10px;">
+                <div class="spinner"></div>
+                <span>Generating first image...</span>
+            </div>
+            <div id="firstError" class="error-message" style="display: none;"></div>
+            <div id="firstSuccess" class="success-message" style="display: none;"></div>
+        </div>
+
+        <!-- Step 3: Generate Remaining Images -->
+        <div class="section">
+            <div class="section-title">
+                <span class="section-number">3</span>
+                Generate Remaining Slide Images (with style reference)
+            </div>
+            <div class="info-box">
+                This prompt generates all remaining slides using the first image as a style reference.
+            </div>
+            <label class="field-label field-label-top">
+                🖼️ Remaining Images Prompt (REQUIRED)
+            </label>
+            <textarea 
+                id="remainingImagesPrompt" 
+                placeholder="Enter your prompt for remaining images generation (REQUIRED)
+
+Example:
+Generate image for {heading} matching reference style EXACTLY.
+
+Content: {explanation}
+
+Use same colors, fonts, layout as reference image. Only change text.
+
+Note: Use {heading} and {explanation} as placeholders - they will be replaced automatically."
+            ></textarea>
+            
+            <button onclick="generateRemainingImages()" id="generateRemainingBtn" disabled>
+                Generate Remaining Images
+            </button>
+            <div id="remainingLoading" class="loading" style="display: none; margin-top: 10px;">
+                <div class="spinner"></div>
+                <span>Generating remaining images...</span>
+            </div>
+            <div id="remainingError" class="error-message" style="display: none;"></div>
+            <div id="remainingSuccess" class="success-message" style="display: none;"></div>
+        </div>
+
+        <!-- Results Display -->
+        <div class="section">
+            <div class="section-title">
+                Generated Carousel Slides
+            </div>
+            <div id="slidesContainer">
+                <div class="no-slides">
+                    📊 No slides generated yet. Start by generating content above.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let slides = [];
+        let firstImageUrl = null;
+
+        // Log when page loads
+        console.log('✅ Page loaded successfully');
+
+        function loadSampleTranscript() {
+            const sampleTranscript = `Welcome to today's discussion about artificial intelligence and its impact on modern business. In this session, we'll explore how AI is revolutionizing various industries and what it means for the future of work.
+
+First, let's talk about automation. AI-powered automation is transforming manufacturing, logistics, and even service industries. Companies are using machine learning algorithms to optimize their supply chains, predict maintenance needs, and reduce operational costs. This isn't just about replacing human workers—it's about augmenting human capabilities and allowing people to focus on more strategic, creative tasks.
+
+The second major area is data analysis. Modern businesses generate massive amounts of data every day. AI systems can process this data at speeds and scales that would be impossible for human analysts. They can identify patterns, predict trends, and provide insights that help companies make better decisions. We're seeing this in marketing, where AI helps personalize customer experiences, and in finance, where it detects fraud and assesses risk.
+
+Customer experience is the third frontier where AI is making a huge impact. Chatbots and virtual assistants are becoming increasingly sophisticated. They can handle complex customer inquiries, provide 24/7 support, and even anticipate customer needs before they're expressed. This leads to higher satisfaction rates and more efficient customer service operations.
+
+Now, let's discuss the challenges. One of the biggest concerns is the skills gap. As AI becomes more prevalent, workers need to develop new skills to remain relevant. Companies must invest in training and education programs to help their employees adapt to this changing landscape. It's not enough to simply implement AI technology—organizations need to ensure their workforce can work effectively alongside these systems.
+
+Another critical challenge is ethics and bias. AI systems learn from historical data, which can contain biases. If we're not careful, we can perpetuate or even amplify existing inequalities. Companies need to be transparent about how they use AI, implement robust testing procedures, and establish ethical guidelines for AI development and deployment.
+
+Data privacy is also a major concern. AI systems require vast amounts of data to function effectively, but this raises questions about how that data is collected, stored, and used. Organizations must balance the benefits of AI with the need to protect individual privacy and comply with regulations like GDPR and CCPA.
+
+Looking ahead, the integration of AI in business will only accelerate. We'll see more sophisticated applications in areas like predictive maintenance, personalized medicine, and autonomous systems. The key to success will be adopting a human-centered approach—using AI to enhance human capabilities rather than replace them.
+
+Companies that succeed in the AI era will be those that invest in both technology and people. They'll create cultures of continuous learning, prioritize ethical AI practices, and view AI as a tool to empower their workforce rather than a replacement for it.
+
+In conclusion, AI represents both tremendous opportunity and significant responsibility. By approaching AI implementation thoughtfully, investing in our people, and maintaining strong ethical standards, we can harness its power to create more efficient, innovative, and human-friendly businesses.`;
+
+            document.getElementById('transcript').value = sampleTranscript;
+            
+            // Show success message
+            const successDiv = document.getElementById('contentSuccess');
+            successDiv.textContent = '✅ Sample transcript loaded! Click "Generate Slide Content" to test.';
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        async function generateContent() {
+            const transcript = document.getElementById('transcript').value.trim();
+            const prompt = document.getElementById('contentPrompt').value.trim();
+            
+            if (!transcript) {
+                alert('Please enter a transcript');
+                return;
+            }
+
+            const btn = document.getElementById('generateContentBtn');
+            const loading = document.getElementById('contentLoading');
+            const errorDiv = document.getElementById('contentError');
+            const successDiv = document.getElementById('contentSuccess');
+
+            btn.disabled = true;
+            loading.style.display = 'flex';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/generate-content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, transcript })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate content');
+                }
+
+                slides = data.slides;
+                firstImageUrl = null; // Reset when generating new content
+
+                successDiv.textContent = `✅ Generated ${slides.length} slides!`;
+                successDiv.style.display = 'block';
+
+                // Enable first image button
+                document.getElementById('generateFirstBtn').disabled = false;
+
+                // Display slides (text only for now)
+                renderSlides();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        async function generateFirstImage() {
+            if (slides.length === 0) {
+                alert('Please generate slide content first');
+                return;
+            }
+
+            console.log('🚀 Starting generateFirstImage...');
+            console.log('Current slides:', slides.length);
+
+            const prompt = document.getElementById('firstImagePrompt').value.trim();
+            const firstSlide = slides[0];
+
+            const btn = document.getElementById('generateFirstBtn');
+            const loading = document.getElementById('firstLoading');
+            const errorDiv = document.getElementById('firstError');
+            const successDiv = document.getElementById('firstSuccess');
+
+            btn.disabled = true;
+            loading.style.display = 'flex';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            try {
+                console.log('📤 Sending request to /api/generate-first-image');
+                
+                const response = await fetch('http://localhost:3000/api/generate-first-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt,
+                        heading: firstSlide.heading,
+                        explanation: firstSlide.explanation,
+                        slideNumber: firstSlide.slideNumber,
+                        totalSlides: slides.length
+                    })
+                });
+
+                console.log('📥 Response status:', response.status);
+
+                const data = await response.json();
+                console.log('📄 Response data:', data);
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate first image');
+                }
+
+                firstImageUrl = data.imageUrl;
+                slides[0].imageUrl = data.imageUrl;
+                slides[0].tokens = data.tokens;
+
+                console.log('✅ Image URL set:', firstImageUrl);
+                console.log('✅ Slides after update:', slides);
+
+                successDiv.textContent = `✅ First image generated! (${data.tokens.total} tokens)`;
+                successDiv.style.display = 'block';
+
+                // Enable remaining images button
+                document.getElementById('generateRemainingBtn').disabled = false;
+
+                console.log('🎨 Calling renderSlides...');
+                renderSlides();
+                console.log('✅ renderSlides completed');
+
+            } catch (error) {
+                console.error('❌ Error in generateFirstImage:', error);
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+                console.log('✅ generateFirstImage completed');
+            }
+        }
+
+        async function generateRemainingImages() {
+            if (!firstImageUrl) {
+                alert('Please generate the first image first');
+                return;
+            }
+
+            const prompt = document.getElementById('remainingImagesPrompt').value.trim();
+            const remainingSlides = slides.slice(1); // Skip first slide
+
+            if (remainingSlides.length === 0) {
+                alert('No remaining slides to generate');
+                return;
+            }
+
+            const btn = document.getElementById('generateRemainingBtn');
+            const loading = document.getElementById('remainingLoading');
+            const errorDiv = document.getElementById('remainingError');
+            const successDiv = document.getElementById('remainingSuccess');
+
+            btn.disabled = true;
+            loading.style.display = 'flex';
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/generate-remaining-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt,
+                        slides: remainingSlides,
+                        firstImageUrl
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate remaining images');
+                }
+
+                // Update slides with generated images
+                data.results.forEach(result => {
+                    const slideIndex = slides.findIndex(s => s.slideNumber === result.slideNumber);
+                    if (slideIndex !== -1) {
+                        slides[slideIndex].imageUrl = result.imageUrl;
+                        slides[slideIndex].status = result.status;
+                        slides[slideIndex].tokens = result.tokens;
+                    }
+                });
+
+                const successCount = data.results.filter(r => r.status === 'completed').length;
+                const totalTokens = data.results.reduce((sum, r) => sum + (r.tokens?.total || 0), 0);
+                
+                successDiv.textContent = `✅ Generated ${successCount}/${remainingSlides.length} images! (${totalTokens} total tokens)`;
+                successDiv.style.display = 'block';
+
+                renderSlides();
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }               
+        }
+
+        function renderSlides() {
+            const container = document.getElementById('slidesContainer');
+            
+            if (slides.length === 0) {
+                container.innerHTML = '<div class="no-slides">📊 No slides generated yet. Start by generating content above.</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="slides-container">
+                    ${slides.map(slide => `
+                        <div class="slide-card">
+                            <div class="slide-image">
+                                ${slide.imageUrl 
+                                    ? `<img src="${slide.imageUrl}" alt="Slide ${slide.slideNumber}">`
+                                    : '<div class="placeholder-icon">🖼️</div>'
+                                }
+                                <div class="slide-badge">${slide.slideNumber}/${slides.length}</div>
+                            </div>
+                            <div class="slide-content">
+                                <div class="slide-heading">${slide.heading}</div>
+                                <div class="slide-explanation">${slide.explanation}</div>
+                                ${slide.tokens ? `
+                                    <div class="token-info">
+                                        <span>Tokens: ${slide.tokens.total}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="text-align: center; color: #666; margin-top: 10px;">
+                    ${slides.length} slides • Scroll to view all
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
