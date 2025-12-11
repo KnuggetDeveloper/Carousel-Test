@@ -299,7 +299,7 @@ app.post("/api/generate-remaining-images", async (req: Request, res: Response) =
         const candidate = response.candidates[0];
         let slideImageData: string | null = null;
 
-        for (const part of candidate?.content?.parts || []) {
+        for (const part of candidate.content.parts || []) {
           if ((part as any).thought) continue;
           if (
             part.inlineData?.mimeType?.includes("image") &&
